@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuickLink — Redirecting...</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0f; color: #e2e2f0;
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh; display: flex;
+      align-items: center; justify-content: center;
+      padding: 20px; text-align: center;
+    }
+    .box {
+      background: #16161f; border: 1px solid #1e1e2e;
+      border-radius: 16px; padding: 40px 30px;
+      max-width: 400px; width: 100%;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #1e1e2e;
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h2 { font-size: 1.2rem; margin-bottom: 8px; }
+    p { color: #6b6b8a; font-size: 0.9rem; }
+    .error { color: #f87171; }
+    .home-btn {
+      display: inline-block; margin-top: 20px;
+      background: #7c6df0; color: #fff;
+      padding: 10px 24px; border-radius: 10px;
+      text-decoration: none; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="spinner" id="spinner"></div>
+    <h2 id="title">Redirect ho rahe hain...</h2>
+    <p id="msg">Ek second ruko!</p>
+    <div id="homeDiv" style="display:none">
+      <a href="/" class="home-btn">🏠 Home Pe Jao</a>
+    </div>
+  </div>
+
+  <script>
+    const code = window.location.pathname.split('/s/')[1];
+
+    if (!code) {
+      showError('Code nahi mila!');
+    } else {
+      fetch('/api/redirect?code=' + code)
+        .then(r => r.json())
+        .then(data => {
+          if (data.url) {
+            document.getElementById('msg').textContent = data.url;
+            setTimeout(() => { window.location.href = data.url; }, 800);
+          } else {
+            showError(data.error || 'Link nahi mila!');
+          }
+        })
+        .catch(() => showError('Server se connection nahi hua!'));
+    }
+
+    function showError(msg) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('title').textContent = '❌ Masla Hua!';
+      document.getElementById('title').className = 'error';
+      document.getElementById('msg').textContent = msg;
+      document.getElementById('homeDiv').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
+
