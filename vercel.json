@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/s/:code", "destination": "/public/redirect.html" },
+    { "source": "/api/shorten", "destination": "/api/shorten.py" },
+    { "source": "/api/redirect", "destination": "/api/redirect.py" },
+    { "source": "/api/links", "destination": "/api/links.py" }
+  ]
+}

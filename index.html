@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuickLink — URL Shortener</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #1e1e2e;
+      --accent: #7c6df0;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --red: #f87171;
+      --text: #e2e2f0;
+      --muted: #6b6b8a;
+      --card: #16161f;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+    }
+    header {
+      width: 100%;
+      max-width: 620px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0 40px;
+    }
+    .logo { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent2); }
+    .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      background: var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+    }
+    .hero { width: 100%; max-width: 620px; text-align: center; margin-bottom: 36px; }
+    .hero h1 {
+      font-size: clamp(2rem, 8vw, 3rem);
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+    .card {
+      width: 100%; max-width: 620px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .input-row { display: flex; flex-direction: column; gap: 12px; }
+    label { font-size: 0.78rem; font-weight: 600; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; }
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+    .btn {
+      width: 100%; padding: 14px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background 0.2s, transform 0.1s;
+    }
+    .btn:hover { background: var(--accent2); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .result {
+      display: none; width: 100%; max-width: 620px;
+      background: var(--card);
+      border: 1px solid var(--green);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .result-label { font-size: 0.75rem; font-weight: 600; color: var(--green); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+    .result-link-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .result-link {
+      flex: 1; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem; color: var(--accent2);
+      word-break: break-all; text-decoration: none;
+    }
+    .copy-btn {
+      background: var(--border); border: none; color: var(--text);
+      padding: 8px 14px; border-radius: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: background 0.2s;
+    }
+    .copy-btn:hover { background: var(--accent); color: #fff; }
+    .copy-btn.copied { background: var(--green); color: #000; }
+    .error-msg {
+      display: none; width: 100%; max-width: 620px;
+      background: #1a0f0f; border: 1px solid var(--red);
+      border-radius: 12px; padding: 14px 18px;
+      color: var(--red); font-size: 0.88rem; margin-bottom: 20px;
+    }
+    .stats {
+      width: 100%; max-width: 620px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 10px; margin-bottom: 24px;
+    }
+    .stat-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; text-align: center;
+    }
+    .stat-num { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 600; color: var(--accent2); display: block; }
+    .stat-lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .links-section { width: 100%; max-width: 620px; }
+    .links-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .links-header h2 { font-size: 0.85rem; font-weight: 600; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; }
+    .link-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px;
+      animation: slideIn 0.25s ease;
+    }
+    .link-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--border); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .link-info { flex: 1; min-width: 0; }
+    .link-short { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent2); font-weight: 600; display: block; margin-bottom: 3px; cursor: pointer; }
+    .link-original { font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .link-clicks { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); text-align: right; flex-shrink: 0; }
+    .link-clicks span { display: block; font-size: 1.1rem; font-weight: 600; color: var(--text); }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 0.9rem; border: 1px dashed var(--border); border-radius: 12px; }
+    .empty-state .icon { font-size: 2rem; margin-bottom: 10px; }
+    .loading { text-align: center; padding: 20px; color: var(--muted); }
+    .spinner {
+      width: 20px; height: 20px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.7s linear infinite; display: inline-block; margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Quick<span>Link</span></div>
+  <div class="badge">LIVE ✦</div>
+</header>
+
+<div class="hero">
+  <h1>Shorten any link instantly</h1>
+  <p>Paste karo, short karo, share karo — bilkul free.</p>
+</div>
+
+<div class="card">
+  <div class="input-row">
+    <label for="longUrl">Apna lamba link yahan daalo</label>
+    <input type="url" id="longUrl" placeholder="https://example.com/bahut-lamba-link..." />
+    <label for="customCode">Custom short code (optional)</label>
+    <input type="text" id="customCode" placeholder="mera-link  (khali choro for auto)" maxlength="20"/>
+    <button class="btn" id="shortenBtn" onclick="shortenUrl()">✂️ Link Chota Karo</button>
+  </div>
+</div>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="result" id="resultBox">
+  <div class="result-label">✅ Link Ready Hai!</div>
+  <div class="result-link-row">
+    <a class="result-link" id="resultLink" href="#" target="_blank"></a>
+    <button class="copy-btn" id="copyBtn" onclick="copyLink()">Copy</button>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-box"><span class="stat-num" id="statTotal">—</span><span class="stat-lbl">Total Links</span></div>
+  <div class="stat-box"><span class="stat-num" id="statClicks">—</span><span class="stat-lbl">Total Clicks</span></div>
+  <div class="stat-box"><span class="stat-num" id="statToday">—</span><span class="stat-lbl">Today</span></div>
+</div>
+
+<div class="links-section">
+  <div class="links-header">
+    <h2>Sab Links</h2>
+  </div>
+  <div id="linksList"><div class="loading"><span class="spinner"></span>Loading...</div></div>
+</div>
+
+<script>
+  // ── CONFIG ──
+  const SITE = window.location.origin;
+
+  // ── Shorten ──
+  async function shortenUrl() {
+    const raw = document.getElementById('longUrl').value.trim();
+    const custom = document.getElementById('customCode').value.trim().replace(/\s+/g, '-').toLowerCase();
+    hideError();
+
+    if (!raw) return showError('⚠️ Pehle link daalo!');
+    let url = raw;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+    try { new URL(url); } catch(e) { return showError('⚠️ Ye sahi link nahi hai!'); }
+
+    setBtnLoading(true);
+    try {
+      const res = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, custom_code: custom || null })
+      });
+      const data = await res.json();
+      if (!res.ok) return showError('⚠️ ' + (data.error || 'Kuch masla hua!'));
+      const shortUrl = SITE + '/s/' + data.code;
+      showResult(shortUrl);
+      document.getElementById('longUrl').value = '';
+      document.getElementById('customCode').value = '';
+      loadLinks();
+    } catch(e) {
+      showError('⚠️ Server se connection nahi hua. Dobara try karo.');
+    } finally {
+      setBtnLoading(false);
+    }
+  }
+
+  function showResult(shortUrl) {
+    const box = document.getElementById('resultBox');
+    const link = document.getElementById('resultLink');
+    link.textContent = shortUrl;
+    link.href = shortUrl;
+    box.style.display = 'block';
+    document.getElementById('copyBtn').textContent = 'Copy';
+    document.getElementById('copyBtn').classList.remove('copied');
+  }
+
+  function copyLink() {
+    const text = document.getElementById('resultLink').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied! ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // ── Load Links ──
+  async function loadLinks() {
+    try {
+      const res = await fetch('/api/links');
+      const data = await res.json();
+      renderLinks(data.links || []);
+      renderStats(data.links || []);
+    } catch(e) {
+      document.getElementById('linksList').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div>Links load nahi hue.</div>';
+    }
+  }
+
+  function renderLinks(links) {
+    const list = document.getElementById('linksList');
+    const emojis = ['🔗','🌐','📎','✨','🚀','💡','🎯','📌'];
+    if (!links.length) {
+      list.innerHTML = '<div class="empty-state"><div class="icon">✂️</div>Abhi koi link nahi hai.<br>Upar se pehla link chota karo!</div>';
+      return;
+    }
+    list.innerHTML = links.map((l, i) => `
+      <div class="link-item">
+        <div class="link-icon">${emojis[i % emojis.length]}</div>
+        <div class="link-info">
+          <a class="link-short" href="${SITE}/s/${l.code}" target="_blank">${SITE}/s/${l.code}</a>
+          <span class="link-original">${l.original_url}</span>
+        </div>
+        <div class="link-clicks"><span>${l.clicks}</span>clicks</div>
+      </div>
+    `).join('');
+  }
+
+  function renderStats(links) {
+    const total = links.length;
+    const totalClicks = links.reduce((a, l) => a + (l.clicks || 0), 0);
+    const today = new Date().toISOString().slice(0, 10);
+    const todayCount = links.filter(l => l.created_at && l.created_at.startsWith(today)).length;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statClicks').textContent = totalClicks;
+    document.getElementById('statToday').textContent = todayCount;
+  }
+
+  function setBtnLoading(on) {
+    const btn = document.getElementById('shortenBtn');
+    btn.disabled = on;
+    btn.textContent = on ? '⏳ Ek second...' : '✂️ Link Chota Karo';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
+
+  loadLinks();
+</script>
+</body>
+</html>
