@@ -1,2 +1,10 @@
+[project]
+name = "quicklink"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.117.1",
+]
+
 [tool.vercel]
-entrypoint = "api/shorten:handler"
+entrypoint = "app:app"
