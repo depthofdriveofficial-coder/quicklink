@@ -1,7 +1,10 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/app.py" },
-    { "source": "/s/(.*)", "destination": "/app.py" },
-    { "source": "/", "destination": "/app.py" }
+  "functions": {
+    "app.py": {
+      "runtime": "python3.12"
+    }
+  },
+  "routes": [
+    { "src": "/(.*)", "dest": "/app.py" }
   ]
 }
