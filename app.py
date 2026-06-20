@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from typing import Optional
+from fastapi.responses import HTMLResponse
 import random
 import string
 import os
@@ -43,9 +42,36 @@ def home():
 
 @app.get("/s/{code}", response_class=HTMLResponse)
 def short_redirect(code: str):
-    path = os.path.join(BASE_DIR, "public", "redirect.html")
-    with open(path, "r") as f:
-        return f.read()
+    # Direct redirect without file reading
+    result = supabase_req("GET", f"links?code=eq.{code}&select=*")
+    if not result:
+        return HTMLResponse("<h2>Link nahi mila!</h2><a href='/'>Home</a>", status_code=404)
+    link = result[0]
+    supabase_req("PATCH", f"links?code=eq.{code}", {"clicks": link['clicks'] + 1})
+    original_url = link['original_url']
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>Redirecting...</title>
+<style>
+body{{background:#0a0a0f;color:#e2e2f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;}}
+.box{{background:#16161f;border:1px solid #1e1e2e;border-radius:16px;padding:40px 30px;max-width:400px;width:100%;}}
+.spinner{{width:40px;height:40px;border:3px solid #1e1e2e;border-top-color:#a78bfa;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 20px;}}
+@keyframes spin{{to{{transform:rotate(360deg);}}}}
+p{{color:#6b6b8a;font-size:0.9rem;word-break:break-all;}}
+</style>
+<meta http-equiv="refresh" content="1;url={original_url}"/>
+</head>
+<body>
+<div class="box">
+<div class="spinner"></div>
+<h2>Redirect ho rahe hain...</h2>
+<p>{original_url}</p>
+</div>
+<script>setTimeout(function(){{window.location.href="{original_url}";}},800);</script>
+</body>
+</html>""")
 
 @app.post("/api/shorten")
 async def shorten(request: Request):
@@ -53,7 +79,7 @@ async def shorten(request: Request):
         body = await request.json()
     except:
         raise HTTPException(status_code=400, detail="JSON parse error!")
-    
+
     url = body.get("url", "").strip()
     custom_code = body.get("custom_code") or None
 
@@ -83,7 +109,7 @@ def get_links():
     return {"links": result}
 
 @app.get("/api/redirect")
-def redirect(code: str):
+def api_redirect(code: str):
     result = supabase_req("GET", f"links?code=eq.{code}&select=*")
     if not result:
         raise HTTPException(status_code=404, detail="Link nahi mila!")
