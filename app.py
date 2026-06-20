@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import random
 import string
@@ -12,6 +11,8 @@ app = FastAPI()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://rmbkorfoktkmxkbydlvu.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtYmtvcmZva3RrbXhrYnlkbHZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODU3NjMsImV4cCI6MjA5NzQ2MTc2M30.CIXXNIfmxVfIwH2ZIDnkQ-mI3nxJ6JLfgW7T1WMR-QY")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def supabase_req(method, path, data=None):
     url = SUPABASE_URL + "/rest/v1/" + path
@@ -27,7 +28,8 @@ def supabase_req(method, path, data=None):
         with urllib.request.urlopen(req) as res:
             return json.loads(res.read())
     except urllib.error.HTTPError as e:
-        raise HTTPException(status_code=e.code, detail=e.read().decode())
+        error_body = e.read().decode()
+        raise HTTPException(status_code=e.code, detail=error_body)
 
 def gen_code(length=6):
     chars = string.ascii_lowercase + string.digits
@@ -37,10 +39,17 @@ class ShortenRequest(BaseModel):
     url: str
     custom_code: str = None
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def home():
-    with open("index.html", "r") as f:
-        return HTMLResponse(f.read())
+    path = os.path.join(BASE_DIR, "index.html")
+    with open(path, "r") as f:
+        return f.read()
+
+@app.get("/s/{code}", response_class=HTMLResponse)
+def short_redirect(code: str):
+    path = os.path.join(BASE_DIR, "public", "redirect.html")
+    with open(path, "r") as f:
+        return f.read()
 
 @app.post("/api/shorten")
 def shorten(req: ShortenRequest):
@@ -78,9 +87,3 @@ def redirect(code: str):
     link = result[0]
     supabase_req("PATCH", f"links?code=eq.{code}", {"clicks": link['clicks'] + 1})
     return {"url": link['original_url']}
-
-@app.get("/s/{code}")
-def short_redirect(code: str):
-    with open("public/redirect.html", "r") as f:
-        return HTMLResponse(f.read())
-
