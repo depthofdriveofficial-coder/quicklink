@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from typing import Optional
 import random
 import string
 import os
@@ -35,10 +35,6 @@ def gen_code(length=6):
     chars = string.ascii_lowercase + string.digits
     return ''.join(random.choices(chars, k=length))
 
-class ShortenRequest(BaseModel):
-    url: str
-    custom_code: str = None
-
 @app.get("/", response_class=HTMLResponse)
 def home():
     path = os.path.join(BASE_DIR, "index.html")
@@ -52,18 +48,25 @@ def short_redirect(code: str):
         return f.read()
 
 @app.post("/api/shorten")
-def shorten(req: ShortenRequest):
-    url = req.url.strip()
+async def shorten(request: Request):
+    try:
+        body = await request.json()
+    except:
+        raise HTTPException(status_code=400, detail="JSON parse error!")
+    
+    url = body.get("url", "").strip()
+    custom_code = body.get("custom_code") or None
+
     if not url:
         raise HTTPException(status_code=400, detail="URL daalna zaroori hai!")
     if not url.startswith("http"):
         url = "https://" + url
 
-    if req.custom_code:
-        existing = supabase_req("GET", f"links?code=eq.{req.custom_code}&select=code")
+    if custom_code:
+        existing = supabase_req("GET", f"links?code=eq.{custom_code}&select=code")
         if existing:
             raise HTTPException(status_code=400, detail="Ye custom code pehle se use ho raha hai!")
-        code = req.custom_code
+        code = custom_code
     else:
         for _ in range(5):
             code = gen_code()
